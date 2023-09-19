@@ -20,13 +20,19 @@ def compare_files(file1, file2):
             print(f"{file2}: {line2.strip()}")
             print()
 
-file1 = 'NovaX_P.hex'
-file2 = 'NovaX_P (1).hex'
+file1 = 'novaxy.bin'
+file2 = 'novax.bin'
+file3 = 'NovaX_P.hex'
+file4 = 'NovaX_P (4).hex'
+file5 = 'NovaX_P (5).hex'
+file6 = 'NovaX_P (6).hex'
+fc1 = 'NovaX_Cry.hex'
+fc2 = 'NovaX_Cr.hex'
 
 #   16:00         135674 NovaX_P (2).hex
 # -a----          2023/7/7     16:00         135674 NovaX_P (3).hex
 
-compare_hex_files(file1, file2)
+# compare_hex_files(fc1, fc2)
 compare_files(file1, file2)
 
 print("程序执行完毕，按下回车键继续...")
