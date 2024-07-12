@@ -1,0 +1,73 @@
+# Starter pipeline
+
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+# ./novax-p\Tool\test_pipeline_ci.sh
+
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  name: JunoBuilders
+
+steps:
+  - script: echo Hello, world!
+    displayName: "Run a one-line script"
+
+  - task: PowerShell@2
+    inputs:
+      targetType: "inline"
+      script: |
+        # Write your PowerShell commands here.
+
+        Write-Host "Hello World"
+        ls
+        pwd
+        rm .\novax-p\OBJ\*
+  # .\novax-p\Tool\juno_pipeline_ci.bat
+  - script: |
+      echo Hello, juno test!
+      echo %cd%
+      cd novax-p
+      cd Tool
+      juno_pipeline_ci.bat
+
+      echo compile juno end!
+    displayName: "Run a keil build script"
+
+  - task: PowerShell@2
+    name: checkTargetFile
+    inputs:
+      targetType: "inline"
+      script: |
+        # Write your PowerShell commands here.
+        Write-Host "check target file"
+        pwd
+        ls
+        cd .\novax-p\firmware\
+        ls
+        # if [[ -e NovaX_P.hex  ]]; then
+        #   echo "Build successufull!"
+        #   true
+        # else
+        #   echo "Build failed!"
+        #   false
+        # fi
+
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: '.\novax-p\firmware'
+      Contents: "**"
+      TargetFolder: "$(build.artifactstagingdirectory)"
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: "$(Build.ArtifactStagingDirectory)"
+      ArtifactName: "drop"
+      publishLocation: "Container"
+
+      # C:\code\NovaX_ABB\novax-p\firmware
