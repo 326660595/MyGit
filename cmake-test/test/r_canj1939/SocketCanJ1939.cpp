@@ -51,11 +51,6 @@ bool SocketCanJ1939::creatSockWrite(void)
             sockname.can_addr.j1939.name = J1939_NO_NAME;
             sockname.can_addr.j1939.pgn = 0x0100;
 
-            peername.can_family = AF_CAN;
-            peername.can_addr.j1939.addr = 0x80;
-            peername.can_addr.j1939.name = J1939_NO_NAME;
-            peername.can_addr.j1939.pgn = 0x0100;
-
             // 设置广播模式
             todo_broadcast = 1;
             if (todo_broadcast)
@@ -87,23 +82,6 @@ bool SocketCanJ1939::creatSockWrite(void)
                 break;
             }
             
-            // struct timeval timeout = {0, 200}; // 20ms
-            // // 设置发送超时
-            // ret = setsockopt(sockW, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(struct timeval));
-            // if (ret != 0)
-            // {
-            //     close(sockW);
-            //     sockW = -1;
-            //     break;
-            // }
-            // // 设置接收超时
-            // ret = setsockopt(sockW, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(struct timeval));
-            // if (ret != 0)
-            // {
-            //     close(sockW);
-            //     sockW = -1;
-            //     break;
-            // }
             // 初始化缓冲区
             //  SocketCan::initBuffs();
         } while (0);
@@ -164,7 +142,7 @@ void SocketCanJ1939::Close()
 }
 
 // 通过socket向can总线发送数据
-void SocketCanJ1939::sendData(__u32 pgn, int data_len, const void *data)
+int SocketCanJ1939::sendData(__u32 pgn, int data_len, const void *data)
 {
     ::memcpy(dat, data, data_len);
     printf("sendData\n");
@@ -177,10 +155,12 @@ void SocketCanJ1939::sendData(__u32 pgn, int data_len, const void *data)
     int ret = sendto(sockW, dat, data_len, 0,
                      (const struct sockaddr *)&sockname, sizeof(sockname));
     printf("sendData ret:%d\n", ret);
+
+    return ret;
 }
 
 // 将数据保存至缓冲区
-void SocketCanJ1939::readData()
+int SocketCanJ1939::readData(void)
 {
     int i, j, ret;
     peernamelen = sizeof(peername);
@@ -197,7 +177,7 @@ void SocketCanJ1939::readData()
     if (ret < 0)
     {
         printf("recvfrom err, ret:%d\n", ret);
-        return;
+        return ret;
     }
     printf("%016llx ", peername.can_addr.j1939.name);
 	printf("%02x %05x:", peername.can_addr.j1939.addr,
@@ -206,6 +186,41 @@ void SocketCanJ1939::readData()
     {
         printf(" %02x", dat[i]);
     }
+
+    return ret;
+}
+
+int SocketCanJ1939::setSendTimeOut(int sec, int sec_ms)
+{
+    int ret;
+    // uint64_t timeOutUs = sec_ms * 1000;
+    uint64_t timeOutUs = sec_ms;
+
+    struct timeval timeout = {sec, timeOutUs};
+    // 设置发送超时
+    ret = setsockopt(sockW, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(struct timeval));
+    if (ret != 0)
+    {
+        printf("setSendTimeOut err, ret:%d\n", ret);
+    }
+    
+    return ret;
+}
+//大于1000毫秒，传参在sec，不然会有错误。
+int SocketCanJ1939::setReadTimeOut(int sec, int sec_ms)
+{
+    int ret;
+    uint64_t timeOutUs = sec_ms * 1000;
+
+    struct timeval timeout = {sec, timeOutUs};
+    // 设置接收超时
+    ret = setsockopt(sockR, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(struct timeval));
+    if (ret != 0)
+    {
+        printf("setReadTimeOut err, ret:%d\n", ret);
+    }
+    
+    return ret;
 }
 
 #if 1
@@ -217,9 +232,9 @@ int main()
     can.Open("can0");
 
     printf("read can\n");
-
+    can.setSendTimeOut(0, 1);
     can.sendData(0x1923, 13, "222222222222221111111111111111111111111111111133");
-
+    // can.setReadTimeOut(2, 500);
 
     auto running = std::atomic<bool>(true);
 

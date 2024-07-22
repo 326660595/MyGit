@@ -56,10 +56,13 @@ public:
     bool setBroadcast(bool broadcastE);
 
     // 通过socket向内核j1939发送数据
-    void sendData(__u32 pgn, int dlc, const void *data);
+    int sendData(__u32 pgn, int dlc, const void *data);
 
     // 读取数据
-    void readData();
+    int readData(void);
+
+    int setSendTimeOut(int sec, int sec_ms);
+    int setReadTimeOut(int sec, int sec_ms);
 };
 
 #endif // SOCKETCAN_SOCKETCAN_H
