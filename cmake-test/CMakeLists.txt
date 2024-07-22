@@ -16,3 +16,4 @@ set(CMAKE_SYSTEM_PROCESSOR arm64)
 set(CMAKE_INSTALL_PREFIX  ${PROJECT_SOURCE_DIR}/build/install)#设置安装路径
 
 add_subdirectory(src)
+add_subdirectory(test)
