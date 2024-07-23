@@ -169,28 +169,26 @@ int SocketCanJ1939::readData(void)
 {
     int i, j, ret;
     peernamelen = sizeof(peername);
-    printf("readData --\n");
+    printf("\nreadData:\n");
     peername.can_addr.j1939.addr = 0xff;
     peername.can_addr.j1939.name = J1939_NO_NAME;
     peername.can_addr.j1939.pgn = J1939_NO_PGN;
-    // ret = recvfrom(SocketCanJ1939::sock, dat, sizeof(dat), 0,
-    //                (struct sockaddr *)&peername, &peernamelen);
     ret = recvfrom(SocketCanJ1939::sockR, dat, sizeof(dat), 0,
                    (struct sockaddr *)&peername, &peernamelen);
-    		// ret = recvfrom(sock, dat, sizeof(dat), 0,
-			// 	(void *)&peername, &peernamelen);
     if (ret < 0)
     {
         printf("recvfrom err, ret:%d\n", ret);
         return ret;
     }
-    printf("%016llx ", peername.can_addr.j1939.name);
-	printf("%02x %05x:", peername.can_addr.j1939.addr,
+    printf("name:%016llx-", peername.can_addr.j1939.name);
+	printf("addr:%02x-pgn:%05x-", peername.can_addr.j1939.addr,
 					peername.can_addr.j1939.pgn);
-    for (i = 0, j = 0; i < ret; ++i, j++)
-    {
-        printf(" %02x", dat[i]);
-    }
+    // for (i = 0, j = 0; i < ret; ++i, j++)
+    // {
+    //     printf(" %02x", dat[i]);
+    // }
+    //russell:将读取的数据放入队列。
+    readCanJ1939MessageToQueue(peername.can_addr.j1939.pgn,ret,dat);
 
     return ret;
 }
@@ -241,7 +239,7 @@ int SocketCanJ1939::setReadTimeOut(int sec, int sec_ms)
 void SocketCanJ1939::sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t* data)
 {
     auto msg = std::make_shared<canJ1939Data>(pgn, dlc, data);
-    m_TxQueue.push_back(msg); 
+    m_TxQueue.push_back(msg);
 }
 
 void SocketCanJ1939::getQueueSend(void)
@@ -252,6 +250,31 @@ void SocketCanJ1939::getQueueSend(void)
         // 处理数据...
         sendData(frontData->pgn, frontData->dlc, frontData->data);
         m_TxQueue.pop_front();
+    }
+}
+
+void SocketCanJ1939::readCanJ1939MessageToQueue(uint32_t pgn, int dlc, const uint8_t* data)
+{
+    auto msg = std::make_shared<canJ1939Data>(pgn, dlc, data);
+    m_RxQueue.push_back(msg); 
+}
+
+void SocketCanJ1939::readMessageQueueHandler(void)
+{
+    printf("\n readMessageQueueHandler:\n");
+    // 检查队列是否不为空
+    if (!m_RxQueue.empty()) {
+        printf("\n not empty:\n");
+        // 检查队列是否不为空
+        auto frontData = m_RxQueue.front();
+        // 处理数据...
+        int i,j;
+        for (i = 0, j = 0; i < frontData->dlc; ++i, j++)
+        {
+            printf(" %02x", frontData->data[i]);
+        }
+        //移出队列
+        m_RxQueue.pop_front();
     }
 }
 
@@ -278,6 +301,7 @@ int main()
                                           {
                                               std::this_thread::sleep_for(std::chrono::milliseconds(100));
                                               can.readData();
+                                              can.readMessageQueueHandler();
                                           }
                                       }};
     

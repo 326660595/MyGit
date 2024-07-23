@@ -78,6 +78,7 @@ public:
     // std::deque<struct canJ1939Data *> m_TxQueue;
     // 其他成员函数和私有成员
     std::deque<std::shared_ptr<canJ1939Data>> m_TxQueue;
+    std::deque<std::shared_ptr<canJ1939Data>> m_RxQueue;
     
     bool Open(const std::string &device);
     void Close();
@@ -95,6 +96,8 @@ public:
 
     void sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t* data);
     void getQueueSend(void);
+    void readCanJ1939MessageToQueue(uint32_t pgn, int dlc, const uint8_t* data);
+    void readMessageQueueHandler(void);
 
 };
 
