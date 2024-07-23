@@ -5,6 +5,7 @@
 #include "SocketCanJ1939.h"
 #include "can_message.h"
 #include <thread>
+#include <cstring>
 
 SocketCanJ1939::SocketCanJ1939()
 {
@@ -81,9 +82,7 @@ bool SocketCanJ1939::creatSockWrite(void)
                 sockW = -1;
                 break;
             }
-            
-            // 初始化缓冲区
-            //  SocketCan::initBuffs();
+
         } while (0);
     }
     return true;
@@ -144,17 +143,23 @@ void SocketCanJ1939::Close()
 // 通过socket向can总线发送数据
 int SocketCanJ1939::sendData(__u32 pgn, int data_len, const void *data)
 {
-    ::memcpy(dat, data, data_len);
+    // ::memcpy(dat, data, data_len);
     printf("sendData\n");
     // sockname.can_family = AF_CAN;
     // sockname.can_ifindex = if_nametoindex("can0");
-    sockname.can_addr.j1939.addr = 0xf5;
+    sockname.can_addr.j1939.addr = 0xf5;//目标 CAN 设备的地址
     // sockname.can_addr.j1939.name = J1939_NO_NAME;
     sockname.can_addr.j1939.pgn = 0x0100;
     // russell:在这里发送数据
-    int ret = sendto(sockW, dat, data_len, 0,
-                     (const struct sockaddr *)&sockname, sizeof(sockname));
-    printf("sendData ret:%d\n", ret);
+    // int ret = sendto(sockW, dat, data_len, 0,
+    //                  (const struct sockaddr *)&sockname, sizeof(sockname));
+    int ret = sendto(sockW, data, data_len, 0,
+                    (const struct sockaddr *)&sockname, sizeof(sockname));
+    if (ret < 0)
+    {
+        printf("sendData err, ret:%d\n", ret);
+        return ret;
+    }
 
     return ret;
 }
@@ -194,11 +199,16 @@ int SocketCanJ1939::setSendTimeOut(int sec, int sec_ms)
 {
     int ret;
     // uint64_t timeOutUs = sec_ms * 1000;
-    uint64_t timeOutUs = sec_ms;
+    __suseconds_t timeOutUs = sec_ms;
+    if((SocketCanJ1939::timeoutW.tv_sec == sec)&&(SocketCanJ1939::timeoutW.tv_usec == timeOutUs))
+    {
+        ret = 0;
+        return ret;
+    }
 
-    struct timeval timeout = {sec, timeOutUs};
+    SocketCanJ1939::timeoutW = {sec, timeOutUs};
     // 设置发送超时
-    ret = setsockopt(sockW, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(struct timeval));
+    ret = setsockopt(sockW, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeoutW, sizeof(struct timeval));
     if (ret != 0)
     {
         printf("setSendTimeOut err, ret:%d\n", ret);
@@ -210,17 +220,39 @@ int SocketCanJ1939::setSendTimeOut(int sec, int sec_ms)
 int SocketCanJ1939::setReadTimeOut(int sec, int sec_ms)
 {
     int ret;
-    uint64_t timeOutUs = sec_ms * 1000;
+    __suseconds_t timeOutUs = sec_ms * 1000;
+    if((SocketCanJ1939::timeoutW.tv_sec == sec)&&(SocketCanJ1939::timeoutW.tv_usec == timeOutUs))
+    {
+        ret = 0;
+        return ret;
+    }
 
-    struct timeval timeout = {sec, timeOutUs};
+    SocketCanJ1939::timeoutR = {sec, timeOutUs};
     // 设置接收超时
-    ret = setsockopt(sockR, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(struct timeval));
+    ret = setsockopt(sockR, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeoutR, sizeof(struct timeval));
     if (ret != 0)
     {
         printf("setReadTimeOut err, ret:%d\n", ret);
     }
     
     return ret;
+}
+
+void SocketCanJ1939::sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t* data)
+{
+    auto msg = std::make_shared<canJ1939Data>(pgn, dlc, data);
+    m_TxQueue.push_back(msg); 
+}
+
+void SocketCanJ1939::getQueueSend(void)
+{
+    // 检查队列是否不为空
+    if (!m_TxQueue.empty()) {
+        auto frontData = m_TxQueue.front();
+        // 处理数据...
+        sendData(frontData->pgn, frontData->dlc, frontData->data);
+        m_TxQueue.pop_front();
+    }
 }
 
 #if 1
@@ -235,6 +267,8 @@ int main()
     can.setSendTimeOut(0, 1);
     can.sendData(0x1923, 13, "222222222222221111111111111111111111111111111133");
     // can.setReadTimeOut(2, 500);
+    can.sendCanJ1939Message(0x1823, 8, (uint8_t *)"9999999999999999999999999999999");
+    can.getQueueSend();
 
     auto running = std::atomic<bool>(true);
 
