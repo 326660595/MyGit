@@ -47,7 +47,7 @@ bool SocketCanJ1939::creatSockWrite(void)
             // }
 
             sockname.can_family = AF_CAN;
-            sockname.can_ifindex = if_nametoindex(device.c_str());  
+            sockname.can_ifindex = if_nametoindex(device.c_str());
             sockname.can_addr.j1939.addr = 0x80;
             sockname.can_addr.j1939.name = J1939_NO_NAME;
             sockname.can_addr.j1939.pgn = 0x0100;
@@ -65,7 +65,7 @@ bool SocketCanJ1939::creatSockWrite(void)
 
             // sockname.can_family = AF_CAN;
             // // sockname.can_ifindex = if_nametoindex("can0");
-            // sockname.can_ifindex = if_nametoindex(device.c_str());           
+            // sockname.can_ifindex = if_nametoindex(device.c_str());
             // sockname.can_addr.j1939.addr = J1939_NO_ADDR;
             // sockname.can_addr.j1939.name = J1939_NO_NAME;
             // sockname.can_addr.j1939.pgn = J1939_NO_PGN;
@@ -115,8 +115,8 @@ bool SocketCanJ1939::creatSockRead(void)
             struct sockaddr_can addr;
             addr.can_family = AF_CAN;
             // addr.can_ifindex = if_nametoindex("can0");
-            addr.can_ifindex = if_nametoindex(device.c_str());           
-            addr.can_addr.j1939.addr = 0xf5;//J1939_NO_ADDR;
+            addr.can_ifindex = if_nametoindex(device.c_str());
+            addr.can_addr.j1939.addr = 0xf5; // J1939_NO_ADDR;
             addr.can_addr.j1939.name = J1939_NO_NAME;
             addr.can_addr.j1939.pgn = J1939_NO_PGN;
 
@@ -128,7 +128,7 @@ bool SocketCanJ1939::creatSockRead(void)
                 sockR = -1;
                 break;
             }
-            
+
         } while (0);
     }
 
@@ -144,23 +144,23 @@ void SocketCanJ1939::Close()
 int SocketCanJ1939::sendData(__u32 pgn, int data_len, const void *data)
 {
     // ::memcpy(dat, data, data_len);
-    printf("sendData\n");
+    printf("sendData-%d\n", sendNum);
     // sockname.can_family = AF_CAN;
     // sockname.can_ifindex = if_nametoindex("can0");
-    sockname.can_addr.j1939.addr = 0xf5;//目标 CAN 设备的地址
+    sockname.can_addr.j1939.addr = 0xf5; // 目标 CAN 设备的地址
     // sockname.can_addr.j1939.name = J1939_NO_NAME;
     sockname.can_addr.j1939.pgn = 0x0100;
     // russell:在这里发送数据
     // int ret = sendto(sockW, dat, data_len, 0,
     //                  (const struct sockaddr *)&sockname, sizeof(sockname));
     int ret = sendto(sockW, data, data_len, 0,
-                    (const struct sockaddr *)&sockname, sizeof(sockname));
+                     (const struct sockaddr *)&sockname, sizeof(sockname));
     if (ret < 0)
     {
         printf("sendData err, ret:%d\n", ret);
         return ret;
     }
-
+    sendNum++;
     return ret;
 }
 
@@ -181,14 +181,14 @@ int SocketCanJ1939::readData(void)
         return ret;
     }
     printf("name:%016llx-", peername.can_addr.j1939.name);
-	printf("addr:%02x-pgn:%05x-", peername.can_addr.j1939.addr,
-					peername.can_addr.j1939.pgn);
+    printf("addr:%02x-pgn:%05x-", peername.can_addr.j1939.addr,
+           peername.can_addr.j1939.pgn);
     // for (i = 0, j = 0; i < ret; ++i, j++)
     // {
     //     printf(" %02x", dat[i]);
     // }
-    //russell:将读取的数据放入队列。
-    readCanJ1939MessageToQueue(peername.can_addr.j1939.pgn,ret,dat);
+    // russell:将读取的数据放入队列。
+    readCanJ1939MessageToQueue(peername.can_addr.j1939.pgn, ret, dat);
 
     return ret;
 }
@@ -198,7 +198,7 @@ int SocketCanJ1939::setSendTimeOut(int sec, int sec_ms)
     int ret;
     // uint64_t timeOutUs = sec_ms * 1000;
     __suseconds_t timeOutUs = sec_ms;
-    if((SocketCanJ1939::timeoutW.tv_sec == sec)&&(SocketCanJ1939::timeoutW.tv_usec == timeOutUs))
+    if ((SocketCanJ1939::timeoutW.tv_sec == sec) && (SocketCanJ1939::timeoutW.tv_usec == timeOutUs))
     {
         ret = 0;
         return ret;
@@ -211,15 +211,15 @@ int SocketCanJ1939::setSendTimeOut(int sec, int sec_ms)
     {
         printf("setSendTimeOut err, ret:%d\n", ret);
     }
-    
+
     return ret;
 }
-//大于1000毫秒，传参在sec，不然会有错误。
+// 大于1000毫秒，传参在sec，不然会有错误。
 int SocketCanJ1939::setReadTimeOut(int sec, int sec_ms)
 {
     int ret;
     __suseconds_t timeOutUs = sec_ms * 1000;
-    if((SocketCanJ1939::timeoutW.tv_sec == sec)&&(SocketCanJ1939::timeoutW.tv_usec == timeOutUs))
+    if ((SocketCanJ1939::timeoutW.tv_sec == sec) && (SocketCanJ1939::timeoutW.tv_usec == timeOutUs))
     {
         ret = 0;
         return ret;
@@ -232,11 +232,11 @@ int SocketCanJ1939::setReadTimeOut(int sec, int sec_ms)
     {
         printf("setReadTimeOut err, ret:%d\n", ret);
     }
-    
+
     return ret;
 }
 
-void SocketCanJ1939::sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t* data)
+void SocketCanJ1939::sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t *data)
 {
     auto msg = std::make_shared<canJ1939Data>(pgn, dlc, data);
     m_TxQueue.push_back(msg);
@@ -244,36 +244,46 @@ void SocketCanJ1939::sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t* d
 
 void SocketCanJ1939::getQueueSend(void)
 {
+    int ret;
     // 检查队列是否不为空
-    if (!m_TxQueue.empty()) {
+    if (!m_TxQueue.empty())
+    {
         auto frontData = m_TxQueue.front();
         // 处理数据...
-        sendData(frontData->pgn, frontData->dlc, frontData->data);
+        do{
+            ret = sendData(frontData->pgn, frontData->dlc, frontData->data);
+            if (ret < 0)
+            {
+                printf("getQueueSend err, ret:%d,retry\n", ret);
+            }
+        }while((!ret));
+        
         m_TxQueue.pop_front();
     }
 }
 
-void SocketCanJ1939::readCanJ1939MessageToQueue(uint32_t pgn, int dlc, const uint8_t* data)
+void SocketCanJ1939::readCanJ1939MessageToQueue(uint32_t pgn, int dlc, const uint8_t *data)
 {
     auto msg = std::make_shared<canJ1939Data>(pgn, dlc, data);
-    m_RxQueue.push_back(msg); 
+    m_RxQueue.push_back(msg);
 }
 
 void SocketCanJ1939::readMessageQueueHandler(void)
 {
-    printf("\n readMessageQueueHandler:\n");
+    // printf("\n readMessageQueueHandler:\n");
     // 检查队列是否不为空
-    if (!m_RxQueue.empty()) {
+    if (!m_RxQueue.empty())
+    {
         printf("\n not empty:\n");
         // 检查队列是否不为空
         auto frontData = m_RxQueue.front();
         // 处理数据...
-        int i,j;
+        int i, j;
         for (i = 0, j = 0; i < frontData->dlc; ++i, j++)
         {
             printf(" %02x", frontData->data[i]);
         }
-        //移出队列
+        // 移出队列
         m_RxQueue.pop_front();
     }
 }
@@ -299,12 +309,15 @@ int main()
                                       {
                                           while (running)
                                           {
-                                              std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                                              can.readData();
-                                              can.readMessageQueueHandler();
+                                              //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                                              //   can.readData();
+                                              //   can.readMessageQueueHandler();
+
+                                              can.sendCanJ1939Message(0x1823, 8, (uint8_t *)"9999999999999999999999999999999");
+                                              can.getQueueSend();
                                           }
                                       }};
-    
+
     polling_thread.join();
 
     return 0;
