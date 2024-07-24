@@ -26,6 +26,9 @@
 #include <linux/can/j1939.h>
 #include <deque>
 
+#define USE_SEND_CANJ1939_DEFAULT_RETRY 3
+#define USE_CANJ1939_DEFAULT_TIMEOUT 250 // 250*1000
+
 class SocketCanJ1939
 {
 private:
@@ -35,14 +38,10 @@ private:
     struct sockaddr_can sockname, peername;
     socklen_t peernamelen;
     uint8_t dat[2046];
-    struct timeval timeoutW
-    {
-        0, 0
-    };
-    struct timeval timeoutR
-    {
-        0, 0
-    };
+
+    uint32_t timeoutW = USE_CANJ1939_DEFAULT_TIMEOUT;
+    uint32_t timeoutR = USE_CANJ1939_DEFAULT_TIMEOUT;
+
     unsigned int sendNum = 0; // 统计发送成功消息条数
     int todo_broadcast = 0;
 
@@ -61,15 +60,17 @@ public:
     SocketCanJ1939();
     struct canJ1939Data
     {
-        struct timeval timeoutW; // timeval 结构体通常在 <sys/time.h> 中定义
-        __u32 pgn;               // PGN（Parameter Group Number）
-        int dlc;                 // Data Length Code
-        uint8_t *data;           // 可变长数组
-        uint8_t ifSendFailRetry = 3;
+        uint32_t timeoutMs = USE_CANJ1939_DEFAULT_TIMEOUT; // 发送超时，单位ms
+        __u32 pgn;                                         // PGN（Parameter Group Number）
+        int dlc;                                           // Data Length Code
+        uint8_t *data;                                     // 可变长数组
+        uint8_t ifSendFailRetry = USE_SEND_CANJ1939_DEFAULT_RETRY;
 
         // 构造函数
-        canJ1939Data(__u32 pgn, int dlc, const uint8_t *initData = nullptr)
-            : pgn(pgn), dlc(dlc)
+        canJ1939Data(__u32 pgn, int dlc, const uint8_t *initData = nullptr,
+                     uint8_t ifSendFailRetry = USE_CANJ1939_DEFAULT_TIMEOUT,
+                     uint32_t timeoutMs = USE_SEND_CANJ1939_DEFAULT_RETRY)
+            : pgn(pgn), dlc(dlc), ifSendFailRetry(ifSendFailRetry), timeoutMs(timeoutMs)
         {
             // 使用 memcpy 来初始化 data 数组，如果提供了 initData
             if ((dlc > 0) && (initData != nullptr))
@@ -81,7 +82,7 @@ public:
         // 析构函数
         ~canJ1939Data()
         {
-            printf("delete data-\n");
+            // printf("delete data-\n");
             if (data != nullptr)
                 delete[] data;
         }
@@ -102,8 +103,8 @@ public:
     // 读取数据
     int readData(void);
 
-    int setSendTimeOut(int sec, int sec_ms);
-    int setReadTimeOut(int sec, int sec_ms);
+    int setSendTimeOut(uint32_t sec_ms);
+    int setReadTimeOut(uint32_t sec_ms);
 
     void sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t *data);
     void getQueueSend(void);

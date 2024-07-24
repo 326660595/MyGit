@@ -193,18 +193,18 @@ int SocketCanJ1939::readData(void)
     return ret;
 }
 
-int SocketCanJ1939::setSendTimeOut(int sec, int sec_ms)
+int SocketCanJ1939::setSendTimeOut(uint32_t sec_ms)
 {
     int ret;
     // uint64_t timeOutUs = sec_ms * 1000;
-    __suseconds_t timeOutUs = sec_ms;
-    if ((SocketCanJ1939::timeoutW.tv_sec == sec) && (SocketCanJ1939::timeoutW.tv_usec == timeOutUs))
+    if(sec_ms == SocketCanJ1939::timeoutW)
+        return 0;
+    timeoutW = sec_ms;
+    printf("setSendTimeOut ms:%d\n", timeoutW);
+    struct timeval timeout
     {
-        ret = 0;
-        return ret;
-    }
-
-    SocketCanJ1939::timeoutW = {sec, timeOutUs};
+        (timeoutW/1000), ((timeoutW%1000)*1000)
+    };
     // 设置发送超时
     ret = setsockopt(sockW, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeoutW, sizeof(struct timeval));
     if (ret != 0)
@@ -215,19 +215,18 @@ int SocketCanJ1939::setSendTimeOut(int sec, int sec_ms)
     return ret;
 }
 // 大于1000毫秒，传参在sec，不然会有错误。
-int SocketCanJ1939::setReadTimeOut(int sec, int sec_ms)
+int SocketCanJ1939::setReadTimeOut(uint32_t sec_ms)
 {
     int ret;
-    __suseconds_t timeOutUs = sec_ms * 1000;
-    if ((SocketCanJ1939::timeoutW.tv_sec == sec) && (SocketCanJ1939::timeoutW.tv_usec == timeOutUs))
-    {
-        ret = 0;
-        return ret;
-    }
+    if(sec_ms == SocketCanJ1939::timeoutR)
+        return 0;
 
-    SocketCanJ1939::timeoutR = {sec, timeOutUs};
+    struct timeval Rtimeout
+    {
+        (timeoutR/1000), ((timeoutR%1000)*1000)
+    };
     // 设置接收超时
-    ret = setsockopt(sockR, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeoutR, sizeof(struct timeval));
+    ret = setsockopt(sockR, SOL_SOCKET, SO_RCVTIMEO, (char *)&Rtimeout, sizeof(struct timeval));
     if (ret != 0)
     {
         printf("setReadTimeOut err, ret:%d\n", ret);
@@ -238,7 +237,9 @@ int SocketCanJ1939::setReadTimeOut(int sec, int sec_ms)
 
 void SocketCanJ1939::sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t *data)
 {
-    auto msg = std::make_shared<canJ1939Data>(pgn, dlc, data);
+    int SendFailRetry = USE_SEND_CANJ1939_DEFAULT_RETRY;
+    uint32_t timeout = USE_CANJ1939_DEFAULT_TIMEOUT;
+    auto msg = std::make_shared<canJ1939Data>(pgn, dlc, data, SendFailRetry, timeout);
     m_TxQueue.push_back(msg);
 }
 
@@ -249,15 +250,19 @@ void SocketCanJ1939::getQueueSend(void)
     if (!m_TxQueue.empty())
     {
         auto frontData = m_TxQueue.front();
+
+        SocketCanJ1939::setSendTimeOut(frontData->timeoutMs);
+        
         // 处理数据...
-        do{
+        do
+        {
             ret = sendData(frontData->pgn, frontData->dlc, frontData->data);
             if (ret < 0)
             {
                 printf("getQueueSend err, ret:%d,retry\n", ret);
             }
-        }while((!ret));
-        
+        } while ((!ret)&&(frontData->ifSendFailRetry--));//russell:发送失败，重新发送
+        printf("ifSendFailRetry :%d,retry\n", frontData->ifSendFailRetry);
         m_TxQueue.pop_front();
     }
 }
@@ -297,7 +302,7 @@ int main()
     can.Open("can0");
 
     printf("read can\n");
-    can.setSendTimeOut(0, 1);
+    // can.setSendTimeOut(1);
     can.sendData(0x1923, 13, "222222222222221111111111111111111111111111111133");
     // can.setReadTimeOut(2, 500);
     can.sendCanJ1939Message(0x1823, 8, (uint8_t *)"9999999999999999999999999999999");
@@ -309,7 +314,7 @@ int main()
                                       {
                                           while (running)
                                           {
-                                              //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                                                // std::this_thread::sleep_for(std::chrono::milliseconds(10));
                                               //   can.readData();
                                               //   can.readMessageQueueHandler();
 
