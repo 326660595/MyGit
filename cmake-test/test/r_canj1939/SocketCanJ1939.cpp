@@ -3,7 +3,7 @@
 //
 
 #include "SocketCanJ1939.h"
-#include "can_message.h"
+// #include "can_message.h"
 #include <thread>
 #include <cstring>
 
@@ -18,7 +18,7 @@ bool SocketCanJ1939::Open(const std::string &device)
     SocketCanJ1939::device = device;
     ret = SocketCanJ1939::creatSockWrite();
     ret = SocketCanJ1939::creatSockRead();
-    return true;
+    return ret;
 }
 
 bool SocketCanJ1939::creatSockWrite(void)
@@ -126,13 +126,14 @@ bool SocketCanJ1939::creatSockRead(void)
             {
                 close(sockR);
                 sockR = -1;
+                printf("bind socket err\n");
                 break;
             }
 
         } while (0);
     }
 
-    return true;
+    return ret;
 }
 
 void SocketCanJ1939::Close()
@@ -235,11 +236,10 @@ int SocketCanJ1939::setReadTimeOut(uint32_t sec_ms)
     return ret;
 }
 
-void SocketCanJ1939::sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t *data)
+void SocketCanJ1939::sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t *data, uint8_t ifSendFailRetry,
+                             uint32_t timeoutMs)
 {
-    int SendFailRetry = USE_SEND_CANJ1939_DEFAULT_RETRY;
-    uint32_t timeout = USE_CANJ1939_DEFAULT_TIMEOUT;
-    auto msg = std::make_shared<canJ1939Data>(pgn, dlc, data, SendFailRetry, timeout);
+    auto msg = std::make_shared<canJ1939Data>(pgn, dlc, data, ifSendFailRetry, timeoutMs);
     m_TxQueue.push_back(msg);
 }
 
@@ -269,11 +269,12 @@ void SocketCanJ1939::getQueueSend(void)
 
 void SocketCanJ1939::readCanJ1939MessageToQueue(uint32_t pgn, int dlc, const uint8_t *data)
 {
+    //russell：未传的参数使用默认值
     auto msg = std::make_shared<canJ1939Data>(pgn, dlc, data);
     m_RxQueue.push_back(msg);
 }
 
-void SocketCanJ1939::readMessageQueueHandler(void)
+void SocketCanJ1939::readMessageQueue(void)
 {
     // printf("\n readMessageQueueHandler:\n");
     // 检查队列是否不为空
@@ -283,17 +284,23 @@ void SocketCanJ1939::readMessageQueueHandler(void)
         // 检查队列是否不为空
         auto frontData = m_RxQueue.front();
         // 处理数据...
-        int i, j;
-        for (i = 0, j = 0; i < frontData->dlc; ++i, j++)
-        {
-            printf(" %02x", frontData->data[i]);
-        }
+        recMessageHandler(frontData->pgn, frontData->dlc, frontData->data);
         // 移出队列
         m_RxQueue.pop_front();
     }
 }
 
-#if 1
+void SocketCanJ1939::recMessageHandler(uint32_t pgn, int dlc, const uint8_t *data)
+{
+    int i, j;
+    printf("data_len:%d,pgn:%05x-", dlc, pgn);
+    for (i = 0, j = 0; i < dlc; ++i, j++)
+    {
+        printf(" %02x", data[i]);
+    }
+}
+
+#if 0
 int main()
 {
     printf("hello can\n");
@@ -314,12 +321,12 @@ int main()
                                       {
                                           while (running)
                                           {
-                                                // std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                                              //   can.readData();
-                                              //   can.readMessageQueueHandler();
+                                                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                                                can.readData();
+                                                can.readMessageQueueHandler();
 
-                                              can.sendCanJ1939Message(0x1823, 8, (uint8_t *)"9999999999999999999999999999999");
-                                              can.getQueueSend();
+                                            //   can.sendCanJ1939Message(0x1823, 8, (uint8_t *)"9999999999999999999999999999999");
+                                            //   can.getQueueSend();
                                           }
                                       }};
 

@@ -29,6 +29,36 @@
 #define USE_SEND_CANJ1939_DEFAULT_RETRY 3
 #define USE_CANJ1939_DEFAULT_TIMEOUT 250 // 250*1000
 
+struct canJ1939Data
+{
+    uint32_t timeoutMs = USE_CANJ1939_DEFAULT_TIMEOUT; // 发送超时，单位ms
+    __u32 pgn;                                         // PGN（Parameter Group Number）
+    int dlc;                                           // Data Length Code
+    uint8_t *data;                                     // 可变长数组
+    uint8_t ifSendFailRetry = USE_SEND_CANJ1939_DEFAULT_RETRY;
+
+    // 构造函数
+    canJ1939Data(__u32 pgn, int dlc, const uint8_t *initData = nullptr,
+                    uint8_t ifSendFailRetry = USE_CANJ1939_DEFAULT_TIMEOUT,
+                    uint32_t timeoutMs = USE_SEND_CANJ1939_DEFAULT_RETRY)
+        : pgn(pgn), dlc(dlc), ifSendFailRetry(ifSendFailRetry), timeoutMs(timeoutMs)
+    {
+        // 使用 memcpy 来初始化 data 数组，如果提供了 initData
+        if ((dlc > 0) && (initData != nullptr))
+        {
+            data = new uint8_t[dlc];
+            memcpy(data, initData, dlc);
+        }
+    }
+    // 析构函数
+    ~canJ1939Data()
+    {
+        // printf("delete data-\n");
+        if (data != nullptr)
+            delete[] data;
+    }
+};
+
 class SocketCanJ1939
 {
 private:
@@ -58,35 +88,6 @@ private:
 
 public:
     SocketCanJ1939();
-    struct canJ1939Data
-    {
-        uint32_t timeoutMs = USE_CANJ1939_DEFAULT_TIMEOUT; // 发送超时，单位ms
-        __u32 pgn;                                         // PGN（Parameter Group Number）
-        int dlc;                                           // Data Length Code
-        uint8_t *data;                                     // 可变长数组
-        uint8_t ifSendFailRetry = USE_SEND_CANJ1939_DEFAULT_RETRY;
-
-        // 构造函数
-        canJ1939Data(__u32 pgn, int dlc, const uint8_t *initData = nullptr,
-                     uint8_t ifSendFailRetry = USE_CANJ1939_DEFAULT_TIMEOUT,
-                     uint32_t timeoutMs = USE_SEND_CANJ1939_DEFAULT_RETRY)
-            : pgn(pgn), dlc(dlc), ifSendFailRetry(ifSendFailRetry), timeoutMs(timeoutMs)
-        {
-            // 使用 memcpy 来初始化 data 数组，如果提供了 initData
-            if ((dlc > 0) && (initData != nullptr))
-            {
-                data = new uint8_t[dlc];
-                memcpy(data, initData, dlc);
-            }
-        }
-        // 析构函数
-        ~canJ1939Data()
-        {
-            // printf("delete data-\n");
-            if (data != nullptr)
-                delete[] data;
-        }
-    };
 
     // 其他成员函数和私有成员
     std::deque<std::shared_ptr<canJ1939Data>> m_TxQueue;
@@ -106,10 +107,13 @@ public:
     int setSendTimeOut(uint32_t sec_ms);
     int setReadTimeOut(uint32_t sec_ms);
 
-    void sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t *data);
+    void sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t *data, uint8_t ifSendFailRetry,
+                             uint32_t timeoutMs);
     void getQueueSend(void);
     void readCanJ1939MessageToQueue(uint32_t pgn, int dlc, const uint8_t *data);
-    void readMessageQueueHandler(void);
+    void readMessageQueue(void);
+    virtual void recMessageHandler(uint32_t pgn, int dlc, const uint8_t *data);
+        
 };
 
 #endif // SOCKETCAN_SOCKETCAN_H

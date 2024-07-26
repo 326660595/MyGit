@@ -7,7 +7,7 @@ set(SOURCE_FILES
         SocketCanJ1939.cpp
 )
 
-add_executable(SocketJ1939test SocketCanJ1939.cpp)
+# add_executable(SocketJ1939test SocketCanJ1939.cpp)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 
