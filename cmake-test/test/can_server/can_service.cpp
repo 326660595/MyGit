@@ -19,7 +19,7 @@ int CCanService::Stop()
 
 int CCanService::Init()
 {
-
+  Open(CAN_DEV_NAME);
 }
 int CCanService::canJ1939SendLoop()
 {
