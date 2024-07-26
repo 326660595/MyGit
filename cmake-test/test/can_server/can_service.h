@@ -13,10 +13,11 @@ public:
   CCanService();
   virtual ~CCanService();
   int Init();
+  int configCan(char *canName);
   int Stop();
   int canJ1939SendLoop();
   int canJ1939ReadLoop();
-  void recMessageHandler(uint32_t pgn, int dlc, const uint8_t *data) override;
+  void recMessageHandler(__u8 addr, uint32_t pgn, int dlc, const uint8_t *data) override;
 
 private:
   std::atomic<bool> m_runningState;

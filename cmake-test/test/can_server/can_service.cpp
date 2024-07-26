@@ -17,10 +17,22 @@ int CCanService::Stop()
   return 0;
 }
 
+int CCanService::configCan(char *canName)
+{
+  
+}
+
 int CCanService::Init()
 {
-  Open(CAN_DEV_NAME);
+  int ret;
+  ret = Open(CAN_DEV_NAME);
+  if(!ret)
+  {
+    return -1;
+  }
+
 }
+
 int CCanService::canJ1939SendLoop()
 {
 
@@ -30,10 +42,10 @@ int CCanService::canJ1939ReadLoop()
   
 }
 
-void CCanService::recMessageHandler(uint32_t pgn, int dlc, const uint8_t *data)
+void CCanService::recMessageHandler(__u8 addr, uint32_t pgn, int dlc, const uint8_t *data)
 {
     int i, j;
-    printf("recMessageHandler:data_len:%d,pgn:%05x-", dlc, pgn);
+    printf("recMessageHandler:data_len:%d,addr:%02x-pgn:%05x-",dlc,addr,  pgn);
     for (i = 0, j = 0; i < dlc; ++i, j++)
     {
         printf(" %02x", data[i]);
@@ -51,9 +63,9 @@ int main()
 
     printf("read can\n");
     // can.setSendTimeOut(1);
-    can.sendData(0x1923, 13, "222222222222221111111111111111111111111111111133");
+    can.sendData(0xf5, 0x4700, 13, "222222222222221111111111111111111111111111111133");
     // can.setReadTimeOut(2, 500);
-    can.sendCanJ1939Message(0x1823, 8, (uint8_t *)"9999999999999999999999999999999",1,1);
+    can.sendCanJ1939Message(0x88, 0x0100, 8, (uint8_t *)"9999999999999999999999999999999",1,1);
     can.getQueueSend();
 
     auto running = std::atomic<bool>(true);

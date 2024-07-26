@@ -26,12 +26,15 @@
 #include <linux/can/j1939.h>
 #include <deque>
 
+#define USE_SEND_CANJ1939_ADDR 0xf5
 #define USE_SEND_CANJ1939_DEFAULT_RETRY 3
 #define USE_CANJ1939_DEFAULT_TIMEOUT 250 // 250*1000
+#define BCU_CAN_ADDR 0x80
 
 struct canJ1939Data
 {
     uint32_t timeoutMs = USE_CANJ1939_DEFAULT_TIMEOUT; // 发送超时，单位ms
+    __u8 addr = USE_SEND_CANJ1939_ADDR;
     __u32 pgn;                                         // PGN（Parameter Group Number）
     int dlc;                                           // Data Length Code
     uint8_t *data;                                     // 可变长数组
@@ -40,8 +43,9 @@ struct canJ1939Data
     // 构造函数
     canJ1939Data(__u32 pgn, int dlc, const uint8_t *initData = nullptr,
                     uint8_t ifSendFailRetry = USE_CANJ1939_DEFAULT_TIMEOUT,
-                    uint32_t timeoutMs = USE_SEND_CANJ1939_DEFAULT_RETRY)
-        : pgn(pgn), dlc(dlc), ifSendFailRetry(ifSendFailRetry), timeoutMs(timeoutMs)
+                    uint32_t timeoutMs = USE_SEND_CANJ1939_DEFAULT_RETRY,
+                    __u8 addr = USE_SEND_CANJ1939_ADDR)
+        : pgn(pgn), dlc(dlc), ifSendFailRetry(ifSendFailRetry), timeoutMs(timeoutMs), addr(addr)
     {
         // 使用 memcpy 来初始化 data 数组，如果提供了 initData
         if ((dlc > 0) && (initData != nullptr))
@@ -99,7 +103,7 @@ public:
     bool setBroadcast(bool broadcastE);
 
     // 通过socket向内核j1939发送数据
-    int sendData(__u32 pgn, int dlc, const void *data);
+    int sendData(__u8 addr, __u32 pgn, int dlc, const void *data);
 
     // 读取数据
     int readData(void);
@@ -107,12 +111,12 @@ public:
     int setSendTimeOut(uint32_t sec_ms);
     int setReadTimeOut(uint32_t sec_ms);
 
-    void sendCanJ1939Message(uint32_t pgn, int dlc, const uint8_t *data, uint8_t ifSendFailRetry,
+    void sendCanJ1939Message(__u8 addr, uint32_t pgn, int dlc, const uint8_t *data, uint8_t ifSendFailRetry,
                              uint32_t timeoutMs);
     void getQueueSend(void);
-    void readCanJ1939MessageToQueue(uint32_t pgn, int dlc, const uint8_t *data);
+    void readCanJ1939MessageToQueue(uint32_t pgn, int dlc, const uint8_t *data, __u8 addr);
     void readMessageQueue(void);
-    virtual void recMessageHandler(uint32_t pgn, int dlc, const uint8_t *data);
+    virtual void recMessageHandler(__u8 addr, uint32_t pgn, int dlc, const uint8_t *data);
         
 };
 
