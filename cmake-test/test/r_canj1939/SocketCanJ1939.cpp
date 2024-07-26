@@ -138,7 +138,8 @@ bool SocketCanJ1939::creatSockRead(void)
 
 void SocketCanJ1939::Close()
 {
-    // _stream.close();
+    close(sockR);
+    close(sockW);
 }
 
 // 通过socket向can总线发送数据
