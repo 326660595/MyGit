@@ -106,16 +106,16 @@ public:
     int sendData(__u8 addr, __u32 pgn, int dlc, const void *data);
 
     // 读取数据
-    int readData(void);
+    int readData();
 
     int setSendTimeOut(uint32_t sec_ms);
     int setReadTimeOut(uint32_t sec_ms);
 
     void sendCanJ1939Message(__u8 addr, uint32_t pgn, int dlc, const uint8_t *data, uint8_t ifSendFailRetry,
                              uint32_t timeoutMs);
-    void getQueueSend(void);
+    int getQueueSend();
     void readCanJ1939MessageToQueue(uint32_t pgn, int dlc, const uint8_t *data, __u8 addr);
-    void readMessageQueue(void);
+    int readMessageQueue();
     virtual void recMessageHandler(__u8 addr, uint32_t pgn, int dlc, const uint8_t *data);
         
 };

@@ -20,7 +20,7 @@ int SocketCanJ1939::Open(const std::string &device)
     return ret;
 }
 
-int SocketCanJ1939::creatSockWrite(void)
+int SocketCanJ1939::creatSockWrite()
 {
     int ret = 0;
     sockW = ::socket(PF_CAN, SOCK_DGRAM, CAN_J1939);
@@ -88,7 +88,7 @@ int SocketCanJ1939::creatSockWrite(void)
     return ret;
 }
 
-int SocketCanJ1939::creatSockRead(void)
+int SocketCanJ1939::creatSockRead()
 {
     int ret = 0;
     sockR = ::socket(PF_CAN, SOCK_DGRAM, CAN_J1939);
@@ -167,7 +167,7 @@ int SocketCanJ1939::sendData(__u8 addr, __u32 pgn, int data_len, const void *dat
 }
 
 // 将数据保存至缓冲区
-int SocketCanJ1939::readData(void)
+int SocketCanJ1939::readData()
 {
     int i, j, ret;
     peernamelen = sizeof(peername);
@@ -244,7 +244,7 @@ void SocketCanJ1939::sendCanJ1939Message(__u8 addr, uint32_t pgn, int dlc, const
     m_TxQueue.push_back(msg);
 }
 
-void SocketCanJ1939::getQueueSend(void)
+int SocketCanJ1939::getQueueSend()
 {
     int ret;
     // 检查队列是否不为空
@@ -266,6 +266,7 @@ void SocketCanJ1939::getQueueSend(void)
         printf("ifSendFailRetry :%d,retry\n", frontData->ifSendFailRetry);
         m_TxQueue.pop_front();
     }
+    return ret;
 }
 
 void SocketCanJ1939::readCanJ1939MessageToQueue(uint32_t pgn, int dlc, const uint8_t *data, __u8 addr)
@@ -278,7 +279,7 @@ void SocketCanJ1939::readCanJ1939MessageToQueue(uint32_t pgn, int dlc, const uin
     m_RxQueue.push_back(msg);
 }
 
-void SocketCanJ1939::readMessageQueue(void)
+int SocketCanJ1939::readMessageQueue()
 {
     // printf("\n readMessageQueueHandler:\n");
     // 检查队列是否不为空
@@ -292,7 +293,9 @@ void SocketCanJ1939::readMessageQueue(void)
         recMessageHandler(frontData->addr, frontData->pgn, frontData->dlc, frontData->data);
         // 移出队列
         m_RxQueue.pop_front();
+        return 1;
     }
+    return 0;
 }
 
 void SocketCanJ1939::recMessageHandler(__u8 addr, uint32_t pgn, int dlc, const uint8_t *data)
