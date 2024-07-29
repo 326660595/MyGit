@@ -87,8 +87,8 @@ private:
 
     std::string device;
 
-    bool creatSockWrite(void);
-    bool creatSockRead(void);
+    int creatSockWrite(void);
+    int creatSockRead(void);
 
 public:
     SocketCanJ1939();
@@ -97,7 +97,7 @@ public:
     std::deque<std::shared_ptr<canJ1939Data>> m_TxQueue;
     std::deque<std::shared_ptr<canJ1939Data>> m_RxQueue;
 
-    bool Open(const std::string &device);
+    int Open(const std::string &device);
     void Close();
 
     bool setBroadcast(bool broadcastE);

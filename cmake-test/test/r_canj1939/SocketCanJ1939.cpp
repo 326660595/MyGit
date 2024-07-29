@@ -11,18 +11,18 @@ SocketCanJ1939::SocketCanJ1939()
     printf("creat canj1939\n");
 }
 
-bool SocketCanJ1939::Open(const std::string &device)
+int SocketCanJ1939::Open(const std::string &device)
 {
-    bool ret;
+    int ret;
     SocketCanJ1939::device = device;
     ret = SocketCanJ1939::creatSockWrite();
     ret = SocketCanJ1939::creatSockRead();
     return ret;
 }
 
-bool SocketCanJ1939::creatSockWrite(void)
+int SocketCanJ1939::creatSockWrite(void)
 {
-    int ret;
+    int ret = 0;
     sockW = ::socket(PF_CAN, SOCK_DGRAM, CAN_J1939);
     if (sockW < 0)
     {
@@ -55,7 +55,7 @@ bool SocketCanJ1939::creatSockWrite(void)
             todo_broadcast = 1;
             if (todo_broadcast)
             {
-                printf("todo_broadcast --\n");
+                // printf("todo_broadcast --\n");
                 ret = setsockopt(sockW, SOL_SOCKET, SO_BROADCAST,
                                  &todo_broadcast, sizeof(todo_broadcast));
                 if (ret < 0)
@@ -84,16 +84,13 @@ bool SocketCanJ1939::creatSockWrite(void)
 
         } while (0);
     }
-    if (ret < 0)
-    {
-        return false;
-    }
-    return true;
+
+    return ret;
 }
 
-bool SocketCanJ1939::creatSockRead(void)
+int SocketCanJ1939::creatSockRead(void)
 {
-    int ret;
+    int ret = 0;
     sockR = ::socket(PF_CAN, SOCK_DGRAM, CAN_J1939);
     if (sockR < 0)
     {
@@ -108,7 +105,7 @@ bool SocketCanJ1939::creatSockRead(void)
             todo_broadcast = 1;
             if (todo_broadcast)
             {
-                printf("todo_broadcast --\n");
+                // printf("todo_broadcast --\n");
                 ret = setsockopt(sockR, SOL_SOCKET, SO_BROADCAST,
                                  &todo_broadcast, sizeof(todo_broadcast));
                 if (ret < 0)
@@ -119,7 +116,7 @@ bool SocketCanJ1939::creatSockRead(void)
             addr.can_family = AF_CAN;
             // addr.can_ifindex = if_nametoindex("can0");
             addr.can_ifindex = if_nametoindex(device.c_str());
-            addr.can_addr.j1939.addr = 0xf5; // J1939_NO_ADDR;
+            addr.can_addr.j1939.addr = BCU_CAN_ADDR; // J1939_NO_ADDR;
             addr.can_addr.j1939.name = J1939_NO_NAME;
             addr.can_addr.j1939.pgn = J1939_NO_PGN;
 
@@ -149,7 +146,7 @@ void SocketCanJ1939::Close()
 int SocketCanJ1939::sendData(__u8 addr, __u32 pgn, int data_len, const void *data)
 {
     // ::memcpy(dat, data, data_len);
-    printf("sendData-%d-pgn:%x\n", sendNum,pgn);
+    printf("sendData,num-%d-pgn:%x\n", sendNum,pgn);
     // sockname.can_family = AF_CAN;
     // sockname.can_ifindex = if_nametoindex("can0");
     sockname.can_addr.j1939.addr = addr; // 目标 CAN 设备的地址
@@ -318,10 +315,11 @@ int main()
 
     printf("read can\n");
     // can.setSendTimeOut(1);
-    can.sendData(0x1923, 13, "222222222222221111111111111111111111111111111133");
+    can.sendData(0xf5, 0x4700, 13, "222222222222221111111111111111111111111111111133");
     // can.setReadTimeOut(2, 500);
-    can.sendCanJ1939Message(0x1823, 8, (uint8_t *)"9999999999999999999999999999999");
-    can.getQueueSend();
+    can.sendCanJ1939Message(0x88, 0x0100, 8, (uint8_t *)"9999999999999999999999999999999",1,1);
+    // can.getQueueSend();
+
 
     auto running = std::atomic<bool>(true);
 
@@ -331,12 +329,13 @@ int main()
                                           {
                                                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
                                                 can.readData();
-                                                can.readMessageQueueHandler();
+                                                can.readMessageQueue();
 
                                             //   can.sendCanJ1939Message(0x1823, 8, (uint8_t *)"9999999999999999999999999999999");
                                             //   can.getQueueSend();
                                           }
                                       }};
+
 
     polling_thread.join();
 
