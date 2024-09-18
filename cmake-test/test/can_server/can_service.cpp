@@ -108,7 +108,7 @@ int main()
 
     // can.Open("can0");
     // can.Init();
-    can.canSendThread_ = std::thread{[&]
+    auto canSendThread_ = std::thread{[&]
                               {
                                 while (can.m_runningState)
                                 {
@@ -117,7 +117,7 @@ int main()
                                 }
                               }};
 
-    can.canReadThread_ = std::thread{[&]
+    auto canReadThread_ = std::thread{[&]
                               {
                                 while (can.m_runningState)
                                 {

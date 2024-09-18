@@ -5,6 +5,13 @@
 #include "SocketCanJ1939.h"
 #include "can_message.h"
 
+#include <boost/asio.hpp>
+#include <boost/bind.hpp>
+#include <iostream>
+#include <thread>
+#include <chrono>
+#include <atomic>
+
 #define CAN_DEV_NAME "can0"
 class CObject
 {
