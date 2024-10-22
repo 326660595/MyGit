@@ -11,4 +11,7 @@ project(test)
 # add_subdirectory(can_server)
 
 # add_subdirectory(test_s-to-str)
-add_subdirectory(test1)
+# add_subdirectory(test1)
+add_subdirectory(t_nomho_json)
+
+

@@ -1,0 +1,7 @@
+# nlohmann
+* JSON library
+* [GitHub Repository](https://github.com/nlohmann/json)
+* Version used in vSECClib.ocpp: [3.6.1](https://github.com/nlohmann/json/releases/tag/v3.6.1)
+* Use "./download.sh" to download the nlohmann library
+* This dependency is then resolved
+

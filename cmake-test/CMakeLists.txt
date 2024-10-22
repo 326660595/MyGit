@@ -4,10 +4,10 @@
 #clean : #rm -rf ./build ./out
 ############################################################################
 project(ABB-CHARGERCORE)
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.18)
 
-set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR arm64)
+# set(CMAKE_SYSTEM_NAME Linux)
+# set(CMAKE_SYSTEM_PROCESSOR arm64)
 #set your gcc or set environment.
 # set(CMAKE_C_COMPILER /usr/bin/aarch64-linux-gnu-gcc)
 
