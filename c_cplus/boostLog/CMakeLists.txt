@@ -3,7 +3,9 @@ cmake_minimum_required(VERSION 3.10)  # 指定CMake的最低版本要求
 project(BoostLogExample)  # 项目名称
 
 # 找到Boost库，确保Boost库的版本符合要求
-find_package(Boost 1.74.0 COMPONENTS log log_setup thread system REQUIRED)
+# find_package(Boost 1.74.0 COMPONENTS log log_setup thread system REQUIRED)
+
+find_package(Boost 1.74.0 COMPONENTS log_setup REQUIRED)
 
 # 包含Boost头文件的路径
 include_directories(${Boost_INCLUDE_DIRS})
